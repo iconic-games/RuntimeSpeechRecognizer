@@ -56,7 +56,8 @@ void FRuntimeSpeechRecognizerEditorModule::StartupModule()
 
 	if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
 	{
-		SetupLanguageModel();
+		// iconic: We don't want to setup language model on every startup
+		// SetupLanguageModel();
 	}
 }
 
