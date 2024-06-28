@@ -775,6 +775,11 @@ bool FSpeechRecognizerThread::Init()
 		return false;
 	}
 
+	// iconic: print system info on startup
+	const char* whisper_info = whisper_print_system_info();
+	UE_LOG(LogRuntimeSpeechRecognizer, Log, TEXT("whisper_system_info: %hs"), whisper_info);
+
+
 	return FRunnable::Init();
 }
 
@@ -785,6 +790,9 @@ uint32 FSpeechRecognizerThread::Run()
 		Audio::FAlignedFloatBuffer NewQueuedBuffer;
 		while (AudioQueue.Dequeue(NewQueuedBuffer))
 		{
+			// iconic: print timings on recognition
+			whisper_reset_timings(WhisperState.WhisperContext);
+			
 			bIsFinished.AtomicSet(false);
 
 			// Resize the buffer to the minimum required size (1 second, plus 10% more due to a minor bug in checking the buffer size)
@@ -808,7 +816,7 @@ uint32 FSpeechRecognizerThread::Run()
 		{
 			bIsFinished.AtomicSet(true);
 			TSharedPtr<FSpeechRecognizerThread> ThisShared = AsShared();
-			AsyncTask(ENamedThreads::GameThread, [ThisShared]()
+			AsyncTask(ENamedThreads::GameThread, [ThisShared, this]()
 			{
 				if (!ThisShared.IsValid())
 				{
@@ -823,6 +831,8 @@ uint32 FSpeechRecognizerThread::Run()
 				}
 				ThisShared->OnRecognitionFinished.Broadcast();
 				UE_LOG(LogRuntimeSpeechRecognizer, Log, TEXT("Speech recognition finished"));
+
+				whisper_print_timings(WhisperState.WhisperContext);
 			});
 		}
 	}
